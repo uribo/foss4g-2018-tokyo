@@ -8,7 +8,9 @@ RUN set -x && \
 RUN set -x && \
   install2.r --error \
     estatapi \
+    geofacet \
     geojsonio \
+    here \ 
     jpmesh \
     jpndistrict \
     kokudosuuchi \
