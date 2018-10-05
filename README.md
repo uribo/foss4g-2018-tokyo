@@ -3,6 +3,8 @@ Rを用いた地理空間データの操作と可視化
 
 <p align="center">***FOSS4G 2018 TOKYO ハンズオン***</p>
 
+<p align="center"><img src="inst/readme-banner.png" width="580"></p>
+
 2018年11月9日(金曜日) 開催予定の[FOSS4G2018TOKYO](https://www.osgeo.jp/events/foss4g-2018/foss4g-2018-tokyo)ハンズオンの資料置き場です。
 
 ### 概要
