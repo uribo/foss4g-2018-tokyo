@@ -35,6 +35,14 @@ Rおよびモダンなパッケージ群であるtidyverse (https://www.tidyvers
 * Docker
 * docker-compose
 
+### 各種サービスへの登録
+
+ハンズオンの途中からでも登録可能ですが、事前にこれらのサービスへの登録を行っていただいていると、時間の短縮・自由にできることが増えます :)
+
+- [ ] [政府統計の相談窓口 e-Stat](https://www.e-stat.go.jp)... データ利用のため
+- [ ] 宇宙航空研究開発機構 (JAXA) が提供する [ALOS全球数値地表モデルデータセット](https://www.eorc.jaxa.jp/ALOS/aw3d30/index_j.htm) 利用のためのユーザ登録... データ利用のため
+- [ ] [mapbox](https://www.mapbox.com/)... [deck.gl](http://deck.gl/)利用のため
+
 ## コードの実行
 
 セッションを通してDocker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
