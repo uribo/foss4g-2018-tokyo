@@ -1,11 +1,15 @@
 Rを用いた地理空間データの操作と可視化
 =================
 
-<p align="center">***FOSS4G 2018 TOKYO ハンズオン***</p>
+<p align="center"><b>FOSS4G 2018 TOKYO ハンズオン</b></p>
 
 <p align="center"><img src="inst/readme-banner.png" width="580"></p>
 
 2018年11月9日(金曜日) 開催予定の[FOSS4G2018TOKYO](https://www.osgeo.jp/events/foss4g-2018/foss4g-2018-tokyo)ハンズオンの資料置き場です。
+
+[![Binder](http://mybinder.org/badge.svg)](https://mybinder.org/v2/gh/uribo/foss4g-2018-tokyo/master?urlpath=rstudio)
+[![CC0](https://img.shields.io/badge/license_\(images\)_-CC0-green.svg)](https://creativecommons.org/publicdomain/zero/1.0/)
+[![MIT](https://img.shields.io/badge/license_\(code\)_-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 ### 概要
 
@@ -33,8 +37,15 @@ Rおよびモダンなパッケージ群であるtidyverse (https://www.tidyvers
 
 ## コードの実行
 
-セッションを通して、Docker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
+セッションを通してDocker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
 
 ``` bash
 docker-compose up
+```
+
+docker-compose を利用しない場合
+
+```bash
+docker build -t foss4g_tokyo_r .
+docker run --rm -v `pwd`:/home/rstudio/foss4g-2018-tokyo -p 127.0.0.1:8787:8787 -e DISABLE_AUTH=true foss4g_tokyo_r
 ```
