@@ -1,0 +1,197 @@
+---
+title: "R Notebook"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+options(knitr.duplicate.label = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(geofacet)
+```
+
+### facet
+
+```{r}
+d <- 
+  df_h17to27_pops %>% 
+  # , year != 2005
+  filter(city != "全国") %>% 
+  filter(pref_code == "33", city_type %in% c(1, 2, 3))
+sf_pref33 <- 
+  jpn_pref(33)
+
+df_h17to27_pops %>% 
+  distinct(city_type, .keep_all = TRUE)
+
+sf_pref33 <- 
+  sf_pref33 %>% 
+  mutate(city_code = if_else(stringr::str_detect(city, "[[:space:]].+区$"), 
+                             stringr::str_replace(city_code, ".{1}$", "0"),
+                             city_code),
+         city = stringr::str_remove(city, "[[:space:]].+区$"),
+         city = stringr::str_remove(city, "^.+郡[[:space:]]")) %>% 
+  group_by(city_code, city) %>% 
+  tidyr::nest()
+
+city_union <- function(x) {
+  x %>% 
+    lwgeom::st_make_valid() %>% 
+    sf::st_union(by_feature = FALSE) %>% 
+    sf::st_transform(crs = 4326) %>% 
+    sf::st_cast("POLYGON") %>% 
+    purrr::map(
+      ~ .x[1]
+    ) %>% 
+    sf::st_multipolygon() %>% 
+    sf::st_sfc(crs = 4326)
+}
+
+sf_pref33 <- 
+  sf_pref33 %>% 
+  transmute(city_code,
+            city,
+            geometry = purrr::map(data, ~ city_union(.x)) %>% 
+              purrr::reduce(c)) %>% 
+  st_sf()
+
+
+sf_pref33 %>% 
+  anti_join(d, by = c("city_code", 
+                      "city"))
+d %>% 
+  anti_join(sf_pref33, by = c("city_code", 
+                              "city"))
+
+d %>% 
+  filter(city == "浅口市")
+
+d <- 
+  d %>% 
+  mutate(city_code = recode(
+    city_code,
+    `33201` = "33100",
+    `33303` = "33100",
+    `33321` = "33100",
+    `33345` = "33346",
+    `33442` = "33216",
+    `33443` = "33216",
+    `33444` = "33216",
+  )) %>% 
+  group_by(year, city_code) %>% 
+  mutate(population = sum(population)) %>% 
+  ungroup()
+
+d <- 
+  sf_pref33 %>% 
+  inner_join(d, by = c("city_code", 
+                       "city"))
+
+ggplot() +
+  geom_sf(data = d, aes(fill = population)) +
+  scale_fill_viridis_c() +
+  facet_wrap(~ year)
+
+d <- 
+  d %>% 
+  group_by(year) %>% 
+  mutate(cls = dplyr::ntile(population, 9)) %>% 
+  ungroup()
+
+# cls <- classInt::classIntervals(d$population, 
+#                                 9, 
+#                                 style = "fixed",
+#                       fixedBreaks = c(min(d$population), 
+#                                       50, 100, 200, 300,
+#                                       500, 700, 1000, 2000, 
+#                                       max(d$population)))
+# 
+# range(d$population)
+# cut(d$population, 7)
+
+ggplot() +
+  geom_sf(data = d, aes(fill = population), 
+          color = "white", size = 0.1) +
+  scale_fill_viridis_c(guide = guide_legend(title = "Population")) +
+  facet_wrap(~ year)
+
+ggplot() +
+  geom_sf(data = d, aes(fill = as.character(cls)),
+          color = "white", size = 0.1) +
+  scale_fill_viridis_d(guide = guide_legend(title = "Class", 
+                                            reverse = TRUE)) +
+  theme_light() +
+  facet_wrap(~ year)
+```
+
+### geofacet
+
+```{r}
+df_h17to27_pops <- 
+  readr::read_rds(here::here("data-raw", "population_h17-h22.rds"))
+
+d <-
+  df_h17to27_pops %>% 
+  filter(city != "全国") %>% 
+  filter(city_type == "a") %>% 
+  arrange(pref_code, year) %>% 
+  group_by(pref_code) %>% 
+  mutate(increace = if_else(population > lag(population), TRUE, FALSE)) %>% 
+  ungroup() %>% 
+  arrange(year, pref_code) %>% 
+  mutate(name = rep(jp_prefs_grid1$name, 3))
+```
+
+```{r}
+d %>% 
+  count(pref_code) %>% 
+  filter(!between(n, 3, 3))
+```
+
+```{r}
+p_base <- 
+  d %>% 
+  ggplot(aes(year, population)) +
+  geom_point(aes(color = increace)) +
+  scale_color_manual(values = c("TRUE"  = viridisLite::viridis(2)[1], 
+                                "FALSE" = viridisLite::viridis(2)[2]),
+                     na.value = "gray") +
+  geom_line(color = "gray") +
+  guides(color = guide_legend(title = "人口の増加"))
+```
+
+```{r}
+p_base +
+  facet_wrap(~ pref_code,
+             scales = "free_y")
+```
+```{r}
+p_base + 
+  scale_x_continuous(breaks = c(2005, 2010, 2015)) +
+  scale_y_continuous(labels = scales::comma, 
+                     breaks = c(500000, 1500000, 3000000)) +
+  facet_geo(~ name, 
+            grid = "jp_prefs_grid1",
+            scales = "free_y") +
+  theme_light() +
+  theme(legend.position = "top",
+        legend.direction = "horizontal",
+        axis.text    = element_text(size = 5.2),
+        strip.text.x = element_text(size = 7.6))
+```
+
+### gganimate
+
+```{r}
+# https://gist.github.com/uribo/3df84211cc48b50ec11655e17ea27ee1
+sf_201808kanto62station <-
+  readr::read_rds(here::here("data-raw", "201808_kansto_62ws.rds"))
+```
+
+
+

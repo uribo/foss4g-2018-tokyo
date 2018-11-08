@@ -1,0 +1,348 @@
+---
+title: "Rにおける地理空間データの基礎"
+output: html_notebook
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+options(knitr.duplicate.label = TRUE)
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## sf in R
+
+- データフレームの列に地物の形状 geometry と属性 attributes を格納する
+- simple featureのための3つのクラスを提供する
+    - `sf`
+    - `sfc`: list-column
+    - `sfg`: 個別のsimple featureを扱うfeature geometry
+    - 大きさとしては `sfg` < `sfc` < `sf`
+- sfオブジェクトの`geometry`列およびsfcオブジェクトは属性データをもたない。地物の形状(geometry) を記録するだけ
+    - sfではgeometryを[well-known text](https://ja.wikipedia.org/wiki/Well-known_text)の形式で記述する。
+
+### sfg: simple feature geometry
+
+```{r, 01-hello_world}
+library(sf)
+```
+
+#### ポイント
+
+```{r}
+sfg_pt <- 
+  st_point(c(0, 0))
+
+sfg_pt
+
+st_geometry_type(sfg_pt)
+
+# st_point()にはポイントの座標を与えます
+st_point(c(1, 2)) # 2つの値はXY座標として利用されます
+st_point(c(1, 2, 3)) # XYに加え、Z座標を定義できます
+st_point(c(1, 2, 3), dim = "XYM") # dim引数を利用し、明示的に次元とその値を指定できます
+x <- 
+  st_point(c(1, 2, 3, 4)) # 4次元の座標には4つの値を与えます
+
+st_zm(x)
+```
+
+
+```{r}
+sfg_mpt <- 
+  c(st_point(c(0, 0)),
+    st_point(c(1, 1)))
+
+sfg_mpt
+```
+
+sfgオブジェクトでは演算処理が可能です。
+
+```{r}
+c(sfg_pt, sfg_pt + 1)
+```
+
+またsfgオブジェクトには`plot()`が適用できます。これにより、視覚的にジオメトリの形状を把握することが可能になります。`plot()`の詳細は後述します。
+
+```{r}
+plot(sfg_mpt)
+
+plot(c(sfg_pt, sfg_pt + 1), 
+     col = "red", 
+     pch = 16)
+```
+
+```{r}
+all.equal(sfg_mpt,
+          c(sfg_pt, sfg_pt + 1))
+```
+
+#### ライン
+
+```{r}
+sfg_line <- 
+  st_linestring(sfg_mpt)
+
+sfg_line
+```
+
+```{r}
+sfg_mline <- 
+  c(sfg_line,
+  sfg_line + 1)
+
+sfg_mline
+```
+
+```{r, eval = FALSE}
+plot(sfg_mline, add = TRUE)
+```
+
+#### ポリゴン
+
+```{r}
+# 起点（終点にもなる）を用意
+# 起点と終点は同じ座標
+sfg_pt <- 
+  st_point(c(1, 1))
+
+sfg_poly <- 
+  rbind(
+  sfg_pt, # 起点
+  st_point(c(2, 1)),
+  st_point(c(2, 2)),
+  st_point(c(1, 2)),
+  sfg_pt # 終点
+  ) %>% 
+  print() %>%
+  list() %>% 
+  st_polygon()
+```
+
+```{r, eval = FALSE, echo = TRUE}
+plot(sfg_poly)
+```
+
+```{r, eval = FALSE, echo = TRUE}
+# 閉じていないと怒られます
+rbind(
+  sfg_pt, # 起点
+  st_point(c(2, 1)),
+  st_point(c(2, 2)),
+  st_point(c(1, 2))
+  ) %>% 
+  list() %>% 
+  st_polygon()
+# Error in MtrxSet(x, dim, type = "POLYGON", needClosed = TRUE) : 
+#   polygons not (all) closed
+```
+
+
+```{r}
+sfg_poly_fault <- rbind(
+  sfg_pt,
+  st_point(c(2, 1)),
+  st_point(c(2, 2)),
+  st_point(c(0, 2)),
+  st_point(c(1, 2)),
+  sfg_pt) %>% 
+  print() %>%
+  list() %>% 
+  st_polygon()
+
+st_is_valid(sfg_poly)
+st_is_valid(sfg_poly_fault)
+```
+
+```{r, eval = FALSE}
+plot(sfg_poly_fault)
+```
+
+**your turn**
+
+```
+1. st_point(), st_linestring(), st_polygon()を使って
+ジオメトリを定義してみましょう。
+
+2. 数値ベクトル、リスト、行列のそれぞれを指定した例に
+挑戦してみましょう。
+
+3. MULTIPOINTからPOINTのジオメトリに変換する例を
+考えてみましょう。
+```
+
+`matrix()`を使い、2次元の空間情報を用意します。ここでの次元は、xとy座標として扱われます。
+
+```{r try}
+# x, y座標を定義する行列オブジェクトを作成
+pts <- 
+  matrix(seq_len(20), ncol = 2)
+
+pts
+
+st_point(pts[1, ])
+```
+
+
+```{r, try_ans}
+st_multipoint(pts)
+
+# MULTIPOINTからPOINTへ (sfc)
+st_multipoint(pts) %>% 
+  st_sfc() %>% 
+  st_cast("POINT")
+
+1:nrow(pts) %>% 
+  purrr::map(~ st_point(pts[.x, ]))
+```
+
+### sfc: simple feature list column
+
+sfcはsfgオブジェクトから構成されるオブジェクトです。`st_sfc()`にジオメトリを与えて作成します。引数にはジオメトリの他に、参照座標系を指定することができます。
+
+複数のジオメトリをもつこともでき、その実態はジオメトリの種類、参照座標系、矩形の範囲、欠損の数といった要素をもつリストです。ジオメトリの形状と位置に関する情報を持っています。
+
+```{r}
+st_sfc(sfg_pt)
+
+st_sfc(st_point(c(140.112, 36.083)), 
+       crs = 4326)
+
+```
+### sf: simple feature
+
+sfcに属性情報を追加したものがsfオブジェクトとして扱われます。`st_sf()`がsfオブジェクトを作成する関数となります。
+
+```{r}
+pt1 <- st_point(c(0, 1))
+pt2 <- st_point(c(1, 1))
+sfc <- st_sfc(pt1, pt2)
+
+sfc %>% 
+  st_sf()
+
+# a という属性情報を付与したsfオブジェクトを作成
+data.frame(a = 1:2, 
+           geometry = sfc) %>% 
+  st_sf()
+```
+
+**Your Turn**
+
+```
+1. sfg, sfc, sfの関係について理解できましたか?
+
+2. sfgからsfの作成手順をおさらいしてみましょう
+```
+
+### 他のクラスからsfへの相互変換
+
+csvファイル等に座標の値が列に記録されている場合、データフレームとして読み込んでおくことでsfオブジェクトとして扱うことができます。これには任意の列を座標として扱う`st_as_sf()`を利用します。
+
+```{r}
+sf_poi <- 
+  tibble::data_frame(
+  id = seq(1, 2),
+  lng = c(140.112, 140.12),
+  lat = c(36.083, 36.05)) %>% 
+  st_as_sf(coords = c("lng", "lat"),
+           crs = 4326)
+
+sf_poi
+```
+
+また、sfオブジェクトをデータフレームとして扱うには`st_set_geometry()`関数に`NULL`を指定してジオメトリ情報を除外します。
+
+```{r}
+sf_poi %>% 
+  st_set_geometry(value = NULL)
+```
+
+一方でこの方法では座標情報が失われてしまうので、列として座標値を残したい場合には次のようにする必要があります。`st_coordinate()`はジオメトリの座標を求める関数です。ジオメトリがポイントの場合はXY座標を返します。対象のジオメトリがポリゴンの場合には`st_centroid()`を使い、重心の座標に変換しておく等の処理が必要になります。
+
+```{r}
+sf_poi %>% 
+  dplyr::mutate(lng = st_coordinates(geometry)[, 1],
+                lat = st_coordinates(geometry)[, 2]) %>% 
+  st_set_geometry(NULL)
+```
+
+またsfでは、従来Rで地理空間情報データ（特にベクトルデータ）を扱うのに用いられているspパッケージのオブジェクトとの相互互換のための関数が用意されています。変換は次のように行います。
+
+```{r}
+library(spatstat)
+data(chicago)
+class(chicago)
+st_as_sf(chicago)
+```
+
+```{r}
+as_Spatial(sf_poi)
+```
+
+
+空間解析パッケージはsfをベースにしたものが増えていますが、現状ではまだまだspベースのパッケージが多いです。用途に応じてオブジェクトの変換を行うのが良いでしょう。
+
+### 参照座標系 (CRS)
+
+```{r}
+library(mapview)
+
+p1 <- 
+  st_point(c(140.112, 36.083))
+
+st_crs(p1)
+
+mapview(p1)
+
+st_sfc(p1, crs = 4326) %>%
+  mapview()
+```
+
+### 空間操作
+
+```{r}
+library(jpmesh)
+library(jpndistrict)
+```
+
+ここからはsfクラスのオブジェクトを対象に操作を加えていきます。
+
+例として気象庁の観測所データを利用します。
+
+```{r}
+sf_pref13 <- 
+  jpn_pref(pref_code = 13)
+
+sf_kanto62ws <- 
+  st_read(here::here("data-raw", "kanto_62ws.geojson"))
+```
+
+```{r}
+sf_pref13[1, ]
+
+st_geometry(sf_pref13[1, ]) %>% 
+  st_area()
+```
+
+```{r}
+sf_pref13 <- 
+  sf_pref13 %>% 
+  st_transform(crs = 2451)
+```
+
+```{r}
+st_distance(
+  st_centroid(sf_pref13[1, ]),
+  st_centroid(sf_pref13[10, ])
+)
+st_distance(
+  st_centroid(sf_pref13[1, ]),
+  st_centroid(sf_pref13[29, ])
+)
+st_distance(
+  st_centroid(sf_pref13[1, ]),
+  st_centroid(sf_pref13[62, ])
+)
+```
+
