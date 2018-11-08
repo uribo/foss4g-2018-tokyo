@@ -47,11 +47,16 @@ Rおよびモダンなパッケージ群であるtidyverse (https://www.tidyvers
 
 セッションを通してDocker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
 
-``` bash
+```bash
+# RStudio Serverへログインするためのパスワードを設定します。
+echo "PASSWORD=<任意のアルファベットによるパスワード>" > .env
+
 docker-compose up
 ```
 
-docker-compose を利用しない場合
+ブラウザを立ち上げたら、ユーザ名 `rstudio`、パスワードは先に作成したものを入力してログインしてください。
+
+### docker-compose を利用しない場合
 
 ```bash
 docker build -t foss4g_tokyo_r .
