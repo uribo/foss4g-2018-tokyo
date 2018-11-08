@@ -18,36 +18,24 @@ RUN set -x && \
 RUN set -x && \
   install2.r --error \
     cartogram \
-    CAST \
-    colormap \
     estatapi \
     geofacet \
     geojsonio \
     getlandsat \
     here \ 
-    jpmesh \
-    jpndistrict \
     kokudosuuchi \
-    lawn \
     mapdeck \
-    mlr \
     osmdata \
-    sperrorest \
     stplanr \
-    randomForest \
     rayshader \
     rnaturalearth \
-    rnoaa \
     tmap && \
   installGithub.r \
-    "Nowosad/spDataLarge" \
     "r-lib/rlang" \
     "ropenscilabs/rnaturalearthhires" \
-    "rvalavi/blockCV" \
     "thomasp85/gganimate" \
     "uribo/jpmesh" \
-    "uribo/jpndistrict" \
-    "uribo/jpnp" && \
+    "uribo/jpndistrict" && \
   Rscript -e 'devtools::install_git("https://gitlab.com/uribo/jmastats")' && \
   Rscript -e 'webshot::install_phantomjs()' && \
   rm -rf /tmp/downloaded_packages/ /tmp/*.rds
