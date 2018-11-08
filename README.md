@@ -23,8 +23,6 @@ Rおよびモダンなパッケージ群であるtidyverse (https://www.tidyvers
 ### 事前準備
 
 次の3つのアプリケーションがインストールされたノートパソコン（Wi-Fiに接続できること）。1. R (https://cran.r-project.org/), 2. RStudio (https://www.rstudio.com/), 3. Docker (https://www.docker.com/products/docker-desktop)。セッションを通して、Docker環境を利用します。Dockerをインストールし、docker-composeが利用可能なことを事前に確認していてください。
-これらのアプリケーションのインストール方法を含めた詳細な内容、利用するソースコード等はこちらのリポジトリで公開します。
-
 
 ## 必要なもの
 
@@ -45,7 +43,16 @@ Rおよびモダンなパッケージ群であるtidyverse (https://www.tidyvers
 
 ## コードの実行
 
-セッションを通してDocker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
+1. このページの上部右側にある緑色のボタン`clone or download`を押してください。さらに`Download ZIP`を選択するとファイルがダウンロードされますので、解凍してRprojectを立ち上げてください。
+
+または次のコマンドをRで実行し、Rprojectを立ち上げてください。
+
+```r
+# install.packages("usethis")
+usethis::use_course("https://api.github.com/repos/uribo/foss4g-2018-tokyo/zipball/master")
+```
+
+2. セッションを通してDocker環境を利用します。次のコマンドを実行し、`localhost:8787` へアクセスしてください。
 
 ```bash
 # RStudio Serverへログインするためのパスワードを設定します。
@@ -54,7 +61,7 @@ echo "PASSWORD=<任意のアルファベットによるパスワード>" > .env
 docker-compose up
 ```
 
-ブラウザを立ち上げたら、ユーザ名 `rstudio`、パスワードは先に作成したものを入力してログインしてください。
+3. ブラウザを立ち上げたら、ユーザ名 `rstudio`、パスワードは先に作成したものを入力してログインしてください。
 
 ### docker-compose を利用しない場合
 

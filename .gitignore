@@ -5,3 +5,6 @@
 README.html
 .env
 *.pxm
+*.TIF
+*.xls
+*.nb.html
