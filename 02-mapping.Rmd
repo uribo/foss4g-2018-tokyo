@@ -13,18 +13,45 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(tidyverse)
 library(geofacet)
+library(jpndistrict)
 ```
+
+## 統計データと地理空間データの紐付け
+
+統計データとして、平成17年、22年、27年に行われた国勢調査による人口データを使います。このデータはe-statよりダウンロード可能です。
+
+```{r}
+df_h17to27_pops <- 
+  read_rds(here::here("data-raw", "population_h17-h22.rds"))
+
+glimpse(df_h17to27_pops)
+```
+
+紐づける空間データを用意しましょう。今回は統計調査が全国の市区町村単位で実施されているため、国土数値情報の行政区域データを利用します。
+
+ここでは岡山県のデータを使った例を示します。
+
+```{r}
+sf_pref33 <- 
+  jpn_pref(33)
+
+glimpse(sf_pref33)
+```
+
+```{r}
+df_pops_pref33 <- 
+  df_h17to27_pops %>% 
+  filter(city != "全国") %>% 
+  filter(pref_code == "33", city_type %in% c(1, 2, 3))
+```
+
+
+
 
 ### facet
 
 ```{r}
-d <- 
-  df_h17to27_pops %>% 
-  # , year != 2005
-  filter(city != "全国") %>% 
-  filter(pref_code == "33", city_type %in% c(1, 2, 3))
-sf_pref33 <- 
-  jpn_pref(33)
+
 
 df_h17to27_pops %>% 
   distinct(city_type, .keep_all = TRUE)
@@ -62,17 +89,17 @@ sf_pref33 <-
 
 
 sf_pref33 %>% 
-  anti_join(d, by = c("city_code", 
+  anti_join(df_pops_pref33, by = c("city_code", 
                       "city"))
-d %>% 
+df_pops_pref33 %>% 
   anti_join(sf_pref33, by = c("city_code", 
                               "city"))
 
-d %>% 
+df_pops_pref33 %>% 
   filter(city == "浅口市")
 
-d <- 
-  d %>% 
+df_pops_pref33 <- 
+  df_pops_pref33 %>% 
   mutate(city_code = recode(
     city_code,
     `33201` = "33100",
@@ -87,41 +114,30 @@ d <-
   mutate(population = sum(population)) %>% 
   ungroup()
 
-d <- 
+df_pops_pref33 <- 
   sf_pref33 %>% 
-  inner_join(d, by = c("city_code", 
+  inner_join(df_pops_pref33, by = c("city_code", 
                        "city"))
 
 ggplot() +
-  geom_sf(data = d, aes(fill = population)) +
+  geom_sf(data = df_pops_pref33, aes(fill = population)) +
   scale_fill_viridis_c() +
   facet_wrap(~ year)
 
-d <- 
-  d %>% 
+df_pops_pref33 <- 
+  df_pops_pref33 %>% 
   group_by(year) %>% 
   mutate(cls = dplyr::ntile(population, 9)) %>% 
   ungroup()
 
-# cls <- classInt::classIntervals(d$population, 
-#                                 9, 
-#                                 style = "fixed",
-#                       fixedBreaks = c(min(d$population), 
-#                                       50, 100, 200, 300,
-#                                       500, 700, 1000, 2000, 
-#                                       max(d$population)))
-# 
-# range(d$population)
-# cut(d$population, 7)
-
 ggplot() +
-  geom_sf(data = d, aes(fill = population), 
+  geom_sf(data = df_pops_pref33, aes(fill = population), 
           color = "white", size = 0.1) +
   scale_fill_viridis_c(guide = guide_legend(title = "Population")) +
   facet_wrap(~ year)
 
 ggplot() +
-  geom_sf(data = d, aes(fill = as.character(cls)),
+  geom_sf(data = df_pops_pref33, aes(fill = as.character(cls)),
           color = "white", size = 0.1) +
   scale_fill_viridis_d(guide = guide_legend(title = "Class", 
                                             reverse = TRUE)) +
@@ -192,6 +208,3 @@ p_base +
 sf_201808kanto62station <-
   readr::read_rds(here::here("data-raw", "201808_kansto_62ws.rds"))
 ```
-
-
-
