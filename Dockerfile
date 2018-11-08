@@ -27,11 +27,9 @@ RUN set -x && \
     mapdeck \
     osmdata \
     stplanr \
-    rayshader \
     rnaturalearth \
     tmap && \
   installGithub.r \
-    "r-lib/rlang" \
     "ropenscilabs/rnaturalearthhires" \
     "thomasp85/gganimate" \
     "uribo/jpmesh" \
